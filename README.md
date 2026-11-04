@@ -24,6 +24,8 @@ sha256sum -c SHA256SUMS
 
 If `git lfs` is missing, the clone only contains small pointer files. Install Git LFS and run `git lfs pull` in the repo.
 
+The two archives are 834 MB together. GitHub Free includes 1 GB of Git LFS storage and 1 GB of LFS bandwidth per month, so one clone or one pair of direct downloads uses most of that monthly bandwidth. A later download in the same month can be rejected until the quota resets or a [Git LFS data pack](https://docs.github.com/en/billing/managing-billing-for-git-large-file-storage/about-billing-for-git-large-file-storage) is added.
+
 Direct file download (also public, no login):
 
 ```bash

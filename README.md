@@ -158,9 +158,9 @@ MEMGRAPH_URI=bolt://192.168.1.20:7687 python python/quickstart.py
 
 ## Images
 
-Packed from Docker Hub `latest` on 2026-11-04.
+Memgraph MAGE was packed from Docker Hub `latest` on 2026-11-04. Memgraph Lab was rebuilt on 2026-11-09 from that Lab image with the Bolt quick-connect settings baked in (`127.0.0.1:7687`, encryption off). `docker load` still creates the tag `memgraph/lab:latest`. Start it with `--network host`, as shown above. The Dockerfile is `docker/lab.Dockerfile`.
 
-| Archive | Image loaded by `docker load` | Platform manifest |
+| Archive | Image loaded by `docker load` | Digest |
 | --- | --- | --- |
 | `images/memgraph-mage-linux-amd64.tar` (709 MB) | `memgraph/memgraph-mage:latest` | `sha256:48fe84376e45559864249a9435854e3ad4255e5e856519ee07ab916ae69bc3f4` |
-| `images/memgraph-lab-linux-amd64.tar` (86 MB) | `memgraph/lab:latest` | `sha256:e234386e8ff8864b4b3b8884e7f4e5d2587e5e7231bde9ce4adf42575e61db8a` |
+| `images/memgraph-lab-linux-amd64.tar` (86 MB) | `memgraph/lab:latest` | `sha256:0862f3c5c484cf386b3095e66491653ef442caae6642169c8d841b50b61dd1e8` |

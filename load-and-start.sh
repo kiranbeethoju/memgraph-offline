@@ -33,7 +33,11 @@ else
   docker run -d \
     --name memgraph-lab \
     --restart unless-stopped \
-    -p 3000:3000 \
+    --network host \
+    -e QUICK_CONNECT_MG_HOST=127.0.0.1 \
+    -e QUICK_CONNECT_MG_PORT=7687 \
+    -e QUICK_CONNECT_MG_IS_ENCRYPTED=false \
+    -e LOGIN_RESERVED_HOSTNAME_IS_ENABLED=true \
     memgraph/lab:latest
 fi
 

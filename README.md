@@ -84,9 +84,36 @@ No username or password is set. From this machine use `bolt://localhost:7687`. F
 
 ### Memgraph Lab
 
-Open [http://localhost:3000](http://localhost:3000) in a browser.
+Memgraph Lab is its own container. The browser only loads the UI from port 3000. The Lab process then opens Bolt itself. With the default image settings that connection goes to `127.0.0.1` **inside the Lab container**, so a Memgraph node that is healthy on the Linux host still looks unreachable.
 
-Click **Connect Now**. Inside Compose, Lab reaches the database at `bolt://memgraph:7687`. A client on the host uses `bolt://localhost:7687`.
+Run Lab on the host network. It then uses the same addresses as the Linux machine, and it does not need internet or any extra packages. The image already contains the UI and the Bolt client. Recreate the container you already have:
+
+```bash
+docker rm -f memgraph-lab
+docker run -d \
+  --name memgraph-lab \
+  --restart unless-stopped \
+  --network host \
+  -e QUICK_CONNECT_MG_HOST=127.0.0.1 \
+  -e QUICK_CONNECT_MG_PORT=7687 \
+  -e QUICK_CONNECT_MG_IS_ENCRYPTED=false \
+  -e LOGIN_RESERVED_HOSTNAME_IS_ENABLED=true \
+  memgraph/lab:latest
+```
+
+Or, from this repo, `docker compose up -d --force-recreate`. The Compose file uses the same host network and environment.
+
+Open [http://localhost:3000](http://localhost:3000) on that Linux machine, or `http://<linux-ip>:3000` from another computer. Click **Connect**. Use these values:
+
+| Field | Local Memgraph on this machine | Another Memgraph node |
+| --- | --- | --- |
+| Host | `127.0.0.1` | That node's IP or DNS name, the same one a Bolt client on this Linux host uses |
+| Port | `7687` | `7687` |
+| Logs port | `7444` | `7444` on that node, if it is open |
+| Encrypted | off | off |
+| Username / password | empty | empty, unless that node has auth |
+
+Do not enter `localhost` for a node on another machine. Do not enter the Docker service name `memgraph` unless Lab and that database share a Docker network. `127.0.0.1` is the Linux host, which is correct for the container started with `-p 7687:7687`.
 
 ### mgconsole
 

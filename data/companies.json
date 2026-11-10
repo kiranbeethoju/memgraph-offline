@@ -1,0 +1,19 @@
+{
+  "set": [
+    {"uid": "_:northwind", "dgraph.type": "Company", "name": "Northwind Labs", "industry": "Software", "founded": 2012},
+    {"uid": "_:helios", "dgraph.type": "Company", "name": "Helios Energy", "industry": "Energy", "founded": 2004},
+    {"uid": "_:orion", "dgraph.type": "Company", "name": "Orion Health", "industry": "Healthcare", "founded": 2016},
+
+    {"uid": "_:graphmem", "dgraph.type": "Project", "name": "Graph Memory", "owned_by": [{"uid": "_:northwind"}]},
+    {"uid": "_:grid", "dgraph.type": "Project", "name": "Grid Forecast", "owned_by": [{"uid": "_:helios"}]},
+    {"uid": "_:clinic", "dgraph.type": "Project", "name": "Clinic Graph", "owned_by": [{"uid": "_:orion"}]},
+
+    {"uid": "_:ada", "dgraph.type": "Person", "name": "Ada Lovelace", "works_at": [{"uid": "_:northwind"}], "leads": [{"uid": "_:graphmem"}]},
+    {"uid": "_:grace", "dgraph.type": "Person", "name": "Grace Hopper", "works_at": [{"uid": "_:northwind"}]},
+    {"uid": "_:alan", "dgraph.type": "Person", "name": "Alan Turing", "works_at": [{"uid": "_:northwind"}]},
+    {"uid": "_:tesla", "dgraph.type": "Person", "name": "Nikola Tesla", "works_at": [{"uid": "_:helios"}], "leads": [{"uid": "_:grid"}]},
+    {"uid": "_:curie", "dgraph.type": "Person", "name": "Marie Curie", "works_at": [{"uid": "_:helios"}]},
+    {"uid": "_:florence", "dgraph.type": "Person", "name": "Florence Nightingale", "works_at": [{"uid": "_:orion"}], "leads": [{"uid": "_:clinic"}]},
+    {"uid": "_:salk", "dgraph.type": "Person", "name": "Jonas Salk", "works_at": [{"uid": "_:orion"}]}
+  ]
+}

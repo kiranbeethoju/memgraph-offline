@@ -1,6 +1,6 @@
-"""Connect to local Dgraph, store two people, and read them back.
+"""Read the sample film and company graphs from local Dgraph.
 
-Requires the database from this repo to be running:
+Requires the database from this repo to be running. Startup loads the data:
 
     ./load-and-start.sh
 
@@ -22,77 +22,59 @@ import pydgraph
 
 GRPC = os.environ.get("DGRAPH_GRPC", "localhost:9080")
 
-SCHEMA = """
-name: string @index(exact) .
-age: int .
-friend: [uid] @reverse .
+FILMS = """{
+  films(func: type(Movie), orderasc: released) {
+    title
+    released
+    in_genre { name }
+    directors: ~directed { name }
+  }
+}"""
 
-type Person {
+COMPANIES = """{
+  companies(func: type(Company), orderasc: name) {
     name
-    age
-    friend
-}
-"""
+    industry
+    founded
+    people: ~works_at { name }
+    projects: ~owned_by { name }
+  }
+}"""
 
 
-def set_schema(client: pydgraph.DgraphClient) -> None:
-    client.alter(pydgraph.Operation(schema=SCHEMA))
+def query(client: pydgraph.DgraphClient, dql: str) -> dict:
+    result = client.txn(read_only=True).query(dql)
+    return json.loads(result.json)
 
 
-def alice_exists(client: pydgraph.DgraphClient) -> bool:
-    result = client.txn(read_only=True).query(
-        '{ all(func: eq(name, "Alice")) { uid } }'
-    )
-    return bool(json.loads(result.json)["all"])
+def print_films(films: list) -> None:
+    print(f"Films: {len(films)}")
+    for film in films:
+        genres = ", ".join(item["name"] for item in film.get("in_genre", []))
+        directors = ", ".join(item["name"] for item in film.get("directors", []))
+        print(f"  {film['released']} {film['title']} ({genres}) directed by {directors}")
 
 
-def store_people(client: pydgraph.DgraphClient) -> None:
-    if alice_exists(client):
-        return
-    people = {
-        "uid": "_:alice",
-        "dgraph.type": "Person",
-        "name": "Alice",
-        "age": 26,
-        "friend": {
-            "uid": "_:bob",
-            "dgraph.type": "Person",
-            "name": "Bob",
-            "age": 24,
-        },
-    }
-    txn = client.txn()
-    try:
-        txn.mutate(set_obj=people)
-        txn.commit()
-    finally:
-        txn.discard()
-
-
-def query_alice(client: pydgraph.DgraphClient) -> None:
-    query = """query all($a: string) {
-        all(func: eq(name, $a)) {
-            name
-            age
-            friend { name age }
-        }
-    }"""
-    result = client.txn(read_only=True).query(query, variables={"$a": "Alice"})
-    people = json.loads(result.json)["all"]
-    print(f"Connected to {GRPC}")
-    print(f"People named Alice: {len(people)}")
-    for person in people:
-        friends = ", ".join(friend["name"] for friend in person.get("friend", []))
-        print(f"  {person['name']} age {person['age']} friend {friends}")
+def print_companies(companies: list) -> None:
+    print(f"Companies: {len(companies)}")
+    for company in companies:
+        people = ", ".join(item["name"] for item in company.get("people", []))
+        projects = ", ".join(item["name"] for item in company.get("projects", []))
+        print(f"  {company['name']} ({company['industry']}) people: {people}; projects: {projects}")
 
 
 def main() -> None:
     stub = pydgraph.DgraphClientStub(GRPC)
     client = pydgraph.DgraphClient(stub)
     try:
-        set_schema(client)
-        store_people(client)
-        query_alice(client)
+        films = query(client, FILMS)["films"]
+        companies = query(client, COMPANIES)["companies"]
+        print(f"Connected to {GRPC}")
+        if not films and not companies:
+            print("No sample data found. Run ./scripts/seed.sh after Alpha is up.")
+            return
+        print_films(films)
+        print_companies(companies)
     finally:
         stub.close()
 

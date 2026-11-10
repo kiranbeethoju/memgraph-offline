@@ -20,7 +20,7 @@ chmod +x load-and-start.sh
 ./load-and-start.sh
 ```
 
-`load-and-start.sh` loads `images/dgraph-offline-linux-amd64.tar` and runs `docker compose up -d`.
+`load-and-start.sh` loads `images/dgraph-offline-linux-amd64.tar`, runs `docker compose up -d`, and loads two sample graphs if Alpha is empty.
 
 Check that the three containers are running:
 
@@ -78,16 +78,59 @@ Open [http://localhost:8000](http://localhost:8000) on the Linux machine, or `ht
 
 Set the Dgraph server URL to `http://127.0.0.1:8080` when the browser is on the same machine. From another computer, set it to `http://<linux-ip>:8080`. Leave the connection unencrypted.
 
-A query you can run in Ratel:
+Startup loads two graphs when the `Inception` node is not already there:
+
+- **Films:** 8 movies, their directors, actors, and genres.
+- **Companies:** Northwind Labs, Helios Energy, and Orion Health, with people and projects.
+
+In Ratel, run a query and switch the result to the graph view.
+
+Films, including who directed and acted:
 
 ```
 {
-  people(func: has(name)) {
-    name
-    age
+  films(func: type(Movie), orderasc: released) {
+    title
+    released
+    in_genre { name }
+    ~directed { name }
+    ~acted_in { name }
   }
 }
 ```
+
+One film and its neighbors:
+
+```
+{
+  film(func: eq(title, "Inception")) {
+    title
+    released
+    in_genre { name }
+    ~directed { name }
+    ~acted_in { name }
+  }
+}
+```
+
+Companies, people, and projects:
+
+```
+{
+  companies(func: type(Company)) {
+    name
+    industry
+    founded
+    ~works_at { name }
+    ~owned_by {
+      name
+      ~leads { name }
+    }
+  }
+}
+```
+
+Load the samples again by hand with `./scripts/seed.sh`. It does nothing if `Inception` is already stored. `docker compose down -v` deletes the data, and the next `./load-and-start.sh` loads it again.
 
 ### HTTP
 
@@ -99,7 +142,7 @@ A healthy Alpha returns JSON with `"status":"healthy"` for the `alpha` instance.
 
 ### Python
 
-The starter in `python/quickstart.py` uses [pydgraph](https://github.com/dgraph-io/pydgraph). It sets a small schema, stores Alice and Bob, and reads Alice's friend.
+The starter in `python/quickstart.py` uses [pydgraph](https://github.com/dgraph-io/pydgraph). It reads the sample film graph and company graph.
 
 ```bash
 python3 -m venv .venv
@@ -112,8 +155,12 @@ Expected output:
 
 ```text
 Connected to localhost:9080
-People named Alice: 1
-  Alice age 26 friend Bob
+Films: 8
+  1972 The Godfather (Crime, Drama) directed by Francis Ford Coppola
+  ...
+Companies: 3
+  Helios Energy (Energy) people: Nikola Tesla, Marie Curie; projects: Grid Forecast
+  ...
 ```
 
 Point the script at another host without editing it:

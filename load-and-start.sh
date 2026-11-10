@@ -22,7 +22,11 @@ else
   exit 1
 fi
 
+echo "Loading sample film and company graphs ..."
+./scripts/seed.sh
+
 echo
 echo "Ratel UI:     http://localhost:8000"
 echo "Dgraph HTTP:  http://127.0.0.1:8080"
 echo "Dgraph gRPC:  localhost:9080"
+echo "Sample data:  8 films and 3 companies"

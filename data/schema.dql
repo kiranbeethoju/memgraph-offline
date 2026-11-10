@@ -1,0 +1,40 @@
+name: string @index(term, exact) .
+title: string @index(term, exact) .
+released: int @index(int) .
+founded: int .
+industry: string @index(exact) .
+directed: [uid] @reverse .
+acted_in: [uid] @reverse .
+in_genre: [uid] @reverse .
+works_at: [uid] @reverse .
+leads: [uid] @reverse .
+owned_by: [uid] @reverse .
+
+type Person {
+    name
+    directed
+    acted_in
+    works_at
+    leads
+}
+
+type Movie {
+    title
+    released
+    in_genre
+}
+
+type Genre {
+    name
+}
+
+type Company {
+    name
+    industry
+    founded
+}
+
+type Project {
+    name
+    owned_by
+}

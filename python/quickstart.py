@@ -1,4 +1,4 @@
-"""Connect to local Memgraph and run a small Cypher query.
+"""Connect to local Dgraph, store two people, and read them back.
 
 Requires the database from this repo to be running:
 
@@ -11,63 +11,90 @@ Then:
     pip install -r requirements.txt
     python python/quickstart.py
 
-Override the address with MEMGRAPH_URI if Memgraph is not on this machine.
+Override the address with DGRAPH_GRPC if Alpha is not on this machine.
+The value is host:port with no scheme, for example 192.168.1.20:9080.
 """
 
+import json
 import os
 
-from neo4j import GraphDatabase
+import pydgraph
 
-URI = os.environ.get("MEMGRAPH_URI", "bolt://localhost:7687")
-USER = os.environ.get("MEMGRAPH_USER", "")
-PASSWORD = os.environ.get("MEMGRAPH_PASSWORD", "")
+GRPC = os.environ.get("DGRAPH_GRPC", "localhost:9080")
+
+SCHEMA = """
+name: string @index(exact) .
+age: int .
+friend: [uid] @reverse .
+
+type Person {
+    name
+    age
+    friend
+}
+"""
 
 
-def seed_and_query(session) -> None:
-    session.run(
-        """
-        MERGE (a:User {name: $alice})
-        MERGE (b:User {name: $bob})
-        MERGE (a)-[:KNOWS]->(b)
-        """,
-        alice="Alice",
-        bob="Bob",
+def set_schema(client: pydgraph.DgraphClient) -> None:
+    client.alter(pydgraph.Operation(schema=SCHEMA))
+
+
+def alice_exists(client: pydgraph.DgraphClient) -> bool:
+    result = client.txn(read_only=True).query(
+        '{ all(func: eq(name, "Alice")) { uid } }'
     )
-    result = session.run(
-        """
-        MATCH (user:User)-[:KNOWS]->(friend)
-        RETURN user.name AS user, friend.name AS friend
-        """
-    )
-    print("Friendships:")
-    for record in result:
-        print(f"  {record['user']} KNOWS {record['friend']}")
+    return bool(json.loads(result.json)["all"])
 
 
-def run_pagerank(session) -> None:
-    result = session.run(
-        """
-        CALL pagerank.get()
-        YIELD node, rank
-        RETURN node.name AS name, rank
-        ORDER BY rank DESC
-        """
-    )
-    print("PageRank:")
-    for record in result:
-        print(f"  {record['name']}: {record['rank']:.4f}")
+def store_people(client: pydgraph.DgraphClient) -> None:
+    if alice_exists(client):
+        return
+    people = {
+        "uid": "_:alice",
+        "dgraph.type": "Person",
+        "name": "Alice",
+        "age": 26,
+        "friend": {
+            "uid": "_:bob",
+            "dgraph.type": "Person",
+            "name": "Bob",
+            "age": 24,
+        },
+    }
+    txn = client.txn()
+    try:
+        txn.mutate(set_obj=people)
+        txn.commit()
+    finally:
+        txn.discard()
+
+
+def query_alice(client: pydgraph.DgraphClient) -> None:
+    query = """query all($a: string) {
+        all(func: eq(name, $a)) {
+            name
+            age
+            friend { name age }
+        }
+    }"""
+    result = client.txn(read_only=True).query(query, variables={"$a": "Alice"})
+    people = json.loads(result.json)["all"]
+    print(f"Connected to {GRPC}")
+    print(f"People named Alice: {len(people)}")
+    for person in people:
+        friends = ", ".join(friend["name"] for friend in person.get("friend", []))
+        print(f"  {person['name']} age {person['age']} friend {friends}")
 
 
 def main() -> None:
-    driver = GraphDatabase.driver(URI, auth=(USER, PASSWORD))
+    stub = pydgraph.DgraphClientStub(GRPC)
+    client = pydgraph.DgraphClient(stub)
     try:
-        driver.verify_connectivity()
-        print(f"Connected to {URI}")
-        with driver.session() as session:
-            seed_and_query(session)
-            run_pagerank(session)
+        set_schema(client)
+        store_people(client)
+        query_alice(client)
     finally:
-        driver.close()
+        stub.close()
 
 
 if __name__ == "__main__":

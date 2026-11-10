@@ -1,29 +1,41 @@
 services:
-  memgraph:
-    image: memgraph/memgraph-mage:latest
-    container_name: memgraph-mage
+  zero:
+    image: dgraph/dgraph:v25.5.1
+    container_name: dgraph-zero
+    command: dgraph zero --my=zero:5080
     ports:
-      - "7687:7687" # Bolt protocol (Cypher queries / drivers)
-      - "7444:7444" # WebSocket / log streaming
+      - "5080:5080"
+      - "6080:6080"
     volumes:
-      - mg_lib:/var/lib/memgraph
+      - dgraph_zero:/dgraph
     restart: unless-stopped
 
-  # Lab opens Bolt from inside this container, then serves the UI on port 3000.
-  # Host networking makes 127.0.0.1:7687 the Memgraph port published on the Linux host,
-  # and lets Lab reach any other Bolt address that host can reach.
-  lab:
-    image: memgraph/lab:latest
-    container_name: memgraph-lab
-    network_mode: host
+  alpha:
+    image: dgraph/dgraph:v25.5.1
+    container_name: dgraph-alpha
+    command: >-
+      dgraph alpha
+      --my=alpha:7080
+      --zero=zero:5080
+      --security whitelist=10.0.0.0/8,172.0.0.0/8,192.168.0.0/16,127.0.0.1
+    ports:
+      - "8080:8080"
+      - "9080:9080"
+    volumes:
+      - dgraph_alpha:/dgraph
     depends_on:
-      - memgraph
-    environment:
-      QUICK_CONNECT_MG_HOST: 127.0.0.1
-      QUICK_CONNECT_MG_PORT: "7687"
-      QUICK_CONNECT_MG_IS_ENCRYPTED: "false"
-      LOGIN_RESERVED_HOSTNAME_IS_ENABLED: "true"
+      - zero
+    restart: unless-stopped
+
+  ratel:
+    image: dgraph/ratel:v25.3.0
+    container_name: dgraph-ratel
+    ports:
+      - "8000:8000"
+    depends_on:
+      - alpha
     restart: unless-stopped
 
 volumes:
-  mg_lib:
+  dgraph_zero:
+  dgraph_alpha:
